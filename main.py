@@ -26,7 +26,13 @@ def main():
 
     screen = pygame.display.set_mode(size)
     clock = pygame.time.Clock()
-    while pygame.event.wait().type != pygame.QUIT:
+
+    run = True
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+
         screen.fill((255, 255, 255))
         update(screen)
         pygame.display.flip()
