@@ -11,13 +11,15 @@ player_images = [pygame.image.load(os.path.join('files', 'DinoRun1.png')),
 cactus_images = [pygame.image.load(os.path.join('files', 'cactus1.png')),
     pygame.image.load(os.path.join('files', 'cactus2.png')),
     pygame.image.load(os.path.join('files', 'cactus3.png'))]
-
+pygame.init()
+sound_jump = pygame.mixer.Sound(os.path.join('files', 'jump.wav'))
+sound_finish = pygame.mixer.Sound(os.path.join('files', 'finish.wav'))
 
 #основные константы для позиций
 size = width, height = 1000, 600
 
 bg_pos = bg_x, bg_y = 0, 500
-speed = 5
+speed = 8
 
 jump_delta_y = 1
 jump_start_y = 20
@@ -63,6 +65,7 @@ class Dinosour(pygame.sprite.Sprite):
     def jump(self):
         if self.condition != 2:
             self.condition = 2
+            sound_jump.play()
             self.jump_y = self.y
             self.change_jump = jump_start_y
 
@@ -107,11 +110,24 @@ def bg(screen):
         screen.blit(bg_image, (bg_x - image_w , bg_y))
 
 
+def finish_game(screen, score):
+    run = True
+    sound_finish.play()
+    screen.fill((255, 255, 255))
+    font = pygame.font.SysFont('arial', 30)
+    text = font.render('счёт за игру: ' + str(score // 10), True, (0, 0, 0))
+    score_rect = text.get_rect()
+    score_rect.center = (width // 2, height // 2)
+    screen.blit(text, score_rect)
+    pygame.display.flip()
+    while run:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
 
 
 
 def main():
-    pygame.init()
     pygame.display.set_caption('Динозавр')
 
 
@@ -124,7 +140,7 @@ def main():
     cactus_time = 20
     cactus_list = []
 
-    while True:
+    while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -142,11 +158,22 @@ def main():
         player.draw(screen)
         player.update()
 
+        # отображение счета на экране во время игры
+        font = pygame.font.SysFont('arial', 30)
+        text = font.render('счёт за игру: ' + str(game_score // 10), True, (0, 0, 0))
+        score_rect = text.get_rect()
+        score_rect.center = (width - 150, 30)
+        screen.blit(text, score_rect)
+
         if game_score == cactus_time:
             cactus_time += randint(50,150)
             cactus_list.append(Cactus())
         for c in cactus_list:
             c.draw(screen)
+            if player.rect.colliderect(c.rect):
+                finish_game(screen, game_score)
+                run = False
+                break
             kill_cactus = c.update()
             if kill_cactus: cactus_list.remove(c)
 
