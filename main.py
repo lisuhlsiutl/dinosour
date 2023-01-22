@@ -20,11 +20,10 @@ db = sqlite3.connect('players.db')
 
 cur = db.cursor()
 cur.execute("""CREATE TABLE IF NOT EXISTS users(
-   name TEXT,
+    text TEXT,
    score integer);
 """)
 db.commit()
-text = ''
 
 #основные константы для позиций
 size = width, height = 1000, 600
@@ -121,11 +120,12 @@ def bg(screen):
         screen.blit(bg_image, (bg_x - image_w , bg_y))
 
 
-def finish_game(screen, score):
+def finish_game(screen, score, text):
     run = True
     sound_finish.play()
+    print(text, score // 10)
 
-    cur.execute("INSERT INTO users(name, score) VALUES(?, ?);",
+    cur.execute("INSERT INTO users(text, score) VALUES(?, ?);",
                (text, score // 10))  # записываем ифнормацию о текущей игре в базу данных
     db.commit()
 
@@ -227,7 +227,7 @@ def main():
         for c in cactus_list:
             c.draw(screen)
             if player.rect.colliderect(c.rect):
-                finish_game(screen, game_score)
+                finish_game(screen, game_score, text)
                 run = False
                 break
             kill_cactus = c.update()
