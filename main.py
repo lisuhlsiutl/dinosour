@@ -2,6 +2,7 @@ import pygame
 import sys
 import os
 from random import randint
+import sqlite3
 
 #загружаем картинки
 bg_image = pygame.image.load(os.path.join('files', 'bg.png'))
@@ -12,8 +13,18 @@ cactus_images = [pygame.image.load(os.path.join('files', 'cactus1.png')),
     pygame.image.load(os.path.join('files', 'cactus2.png')),
     pygame.image.load(os.path.join('files', 'cactus3.png'))]
 pygame.init()
+
 sound_jump = pygame.mixer.Sound(os.path.join('files', 'jump.wav'))
 sound_finish = pygame.mixer.Sound(os.path.join('files', 'finish.wav'))
+db = sqlite3.connect('players.db')
+
+cur = db.cursor()
+cur.execute("""CREATE TABLE IF NOT EXISTS users(
+   name TEXT,
+   score integer);
+""")
+db.commit()
+text = ''
 
 #основные константы для позиций
 size = width, height = 1000, 600
@@ -113,13 +124,31 @@ def bg(screen):
 def finish_game(screen, score):
     run = True
     sound_finish.play()
+
+    cur.execute("INSERT INTO users(name, score) VALUES(?, ?);",
+               (text, score // 10))  # записываем ифнормацию о текущей игре в базу данных
+    db.commit()
+
+    cur.execute('SELECT * FROM users')
+    rows = cur.fetchall()
+    rows.sort(key=lambda x: -x[1])  # сортируем все игры по счету по убыванию
+
     screen.fill((255, 255, 255))
     font = pygame.font.SysFont('arial', 30)
-    text = font.render('счёт за игру: ' + str(score // 10), True, (0, 0, 0))
-    score_rect = text.get_rect()
-    score_rect.center = (width // 2, height // 2)
-    screen.blit(text, score_rect)
+    text_score = font.render("Счёт за игру: " + str(score // 10), True, (0, 0, 0))
+    score_rect = text_score.get_rect()
+    score_rect.center = (width // 2, height // 2 - 100)
+    screen.blit(text_score, score_rect)
+
+    for i in range(min(len(rows), 5)):
+        font = pygame.font.SysFont('arial', 20)
+        text_row = font.render(rows[i][0] + str(rows[i][1]), True, (0, 0, 0))
+        row_rect = text_row.get_rect()
+        row_rect.center = (width // 2, height // 2 + 50 * i)
+        screen.blit(text_row, row_rect)
+
     pygame.display.flip()
+
     while run:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -135,6 +164,33 @@ def main():
     clock = pygame.time.Clock()
 
     run = True
+    start = True
+    input_box = pygame.Rect(0, 0, 200, 30)
+    text = ''
+    while start:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+                start = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    print(text)
+                    start = False
+                elif event.key == pygame.K_BACKSPACE:
+                    text = text[:-1]
+                else:
+                    text += event.unicode
+
+        screen.fill((255, 255, 255))
+        font = pygame.font.SysFont('arial', 30)
+        txt = font.render(text, True, (0, 0, 0))
+        input_box.center = (width // 2, height // 2)
+        screen.blit(txt, input_box)
+        pygame.draw.rect(screen, (0, 0, 0), input_box, 1)
+        pygame.display.flip()
+        clock.tick(30)
+
+
     player = Dinosour()
     game_score = 0
     cactus_time = 20
